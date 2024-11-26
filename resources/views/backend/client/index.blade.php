@@ -61,8 +61,15 @@
                                     @foreach ($clients as $item)
                                         <tr role="row" class="odd">
                                             <td>{{$item->id}}</td>
-                                            <td><img class="mt-2" id="oldlogo" src="{{ asset($item->image) }}"
-                                                alt="logo" width="100" height="100" /></td>
+                                            <td>
+                                                @if(!empty($item->images) && is_array(json_decode($item->images)))
+                                                    @foreach (json_decode($item->images) as $image)
+                                                        <img class="mt-2" src="{{ asset($image) }}" alt="logo" width="100" height="100" />
+                                                    @endforeach
+                                                @else
+                                                    <span>No images available</span>
+                                                @endif
+                                            </td>
                                             <td>{{$item->name}}</td>
                                             <td>{{$item->passport_number}}</td>
                                             <td>{!!Str::limit($item->short_description,30)!!}</td>

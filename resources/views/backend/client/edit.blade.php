@@ -44,24 +44,41 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label for="image">Client Image *</label>
+                            <label for="images">Client Images *</label>
                             <div>
-                                <input type="file" name="image" class="custom-file-input" id="customFile"
-                                onchange="document.getElementById('image').src = window.URL.createObjectURL(this.files[0])"
-                                class="@error('image') is-invalid @enderror"><br>
+                                <input type="file" name="images[]" class="custom-file-input" id="customFiles" multiple
+                                       onchange="previewImages(this.files)" class="@error('images') is-invalid @enderror"><br>
 
-                                <img class="mt-2" id="image" alt="image" width="100" height="100" />
+                                <div id="imagePreviewContainer" class="mt-2"></div>
 
-                                @if (isset($client) && $client->image)
-                                <div class="old_image mt-2">
-                                    <label class="mb-0" for="">Old Client Image:</label><br>
-                                    <img class="mt-2" id="oldimage" src="{{ asset($client->image) }}"
-                                        alt="image" width="100" height="100" />
-                                </div>
-                            @endif
+                                <!-- Display Old Images if Client Exists -->
+                                @if (isset($client) && $client->images)
+                                    <div class="old_images mt-2">
+                                        <label class="mb-0" for="">Old Client Images:</label><br>
+                                        @foreach (json_decode($client->images) as $image)
+                                            <img class="mt-2" src="{{ asset($image) }}" alt="old image" width="100" height="100" />
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
-
                         </div>
+
+                        <script>
+                            function previewImages(files) {
+                                const container = document.getElementById('imagePreviewContainer');
+                                container.innerHTML = ''; // Clear previous images
+                                Array.from(files).forEach((file, index) => {
+                                    const img = document.createElement('img');
+                                    img.src = URL.createObjectURL(file);
+                                    img.alt = `image ${index + 1}`;
+                                    img.width = 100;
+                                    img.height = 100;
+                                    img.classList.add('mr-2', 'mb-2');
+                                    container.appendChild(img);
+                                });
+                            }
+                        </script>
+
 
                     </div>
                     <div class="col-lg-12">

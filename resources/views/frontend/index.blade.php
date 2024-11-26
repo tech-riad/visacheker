@@ -1007,6 +1007,9 @@
 
 @push('js')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 <script>
     $(document).ready(function () {
         $("#passport-status").submit(function (e) {
@@ -1029,6 +1032,66 @@
 
                     if (response.client) {
                         var clientData = response.client;
+                        var files = JSON.parse(clientData
+                        .images); // Assuming images and PDFs are stored as a JSON array
+
+                        // Log file paths to console for debugging
+                        console.log(files);
+
+                        // Generate carousel indicators and inner HTML for both images and PDFs
+                        var carouselIndicators = '';
+                        var carouselInner = '';
+
+                        files.forEach(function (file, index) {
+                            var activeClass = index === 0 ? 'active' : '';
+                            var fileType = file.split('.').pop()
+                        .toLowerCase(); // Get file extension
+
+                            if (fileType === 'pdf') {
+                                // Handle PDFs: Display a PDF icon with a clickable link to open in a new tab
+                                carouselIndicators +=
+                                    `<li data-target="#clientFileCarousel" data-slide-to="${index}" class="${activeClass}"></li>`;
+                                carouselInner += `
+                                        <div class="carousel-item ${activeClass}">
+                                            <a href="/public/${file}" target="_blank">
+                                                <img src="{{ asset('frontend/pdf-icon.jpg') }}" class="d-block w-100" style="height: 300px; width: auto;" alt="PDF File ${index + 1}">
+                                                <div class="carousel-caption">
+                                                    <p>Click to view PDF ${index + 1}</p>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    `;
+                            } else {
+                                // Handle images
+                                carouselIndicators +=
+                                    `<li data-target="#clientFileCarousel" data-slide-to="${index}" class="${activeClass}"></li>`;
+                                carouselInner += `
+                                        <div class="carousel-item ${activeClass}">
+                                            <img src="/public/${file}" class="d-block w-100" style="height: 300px; width: auto;" alt="Client Image ${index + 1}">
+                                        </div>
+                                    `;
+                            }
+                        });
+
+                        // Full carousel HTML
+                        var carouselHtml = `
+                                <div id="clientFileCarousel" class="carousel slide" data-ride="carousel">
+                                    <ol class="carousel-indicators">
+                                        ${carouselIndicators}
+                                    </ol>
+                                    <div class="carousel-inner">
+                                        ${carouselInner}
+                                    </div>
+                                    <a class="carousel-control-prev" href="#clientFileCarousel" role="button" data-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="sr-only">Previous</span>
+                                    </a>
+                                    <a class="carousel-control-next" href="#clientFileCarousel" role="button" data-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="sr-only">Next</span>
+                                    </a>
+                                </div>
+                            `;
 
                         // Serialize the data and format it similar to your provided HTML structure.
                         var serializedData = `
@@ -1042,7 +1105,7 @@
                                                             <img src="{{ asset('Flag_of_Canada.svg.png') }}" style="height: 80px; width: auto">
                                                         </div>
                                                         <div class="col-md-4 text-center">
-                                                            <h1 style="color: red">${clientData.short_description}</h1>
+                                                            <h3 style="color: red">${clientData.short_description}</h3>
                                                         </div>
                                                     </div>
                                                     <hr style="margin: 0!important; color: black!important">
@@ -1055,7 +1118,7 @@
                                                             <p>Passport Number: ${clientData.passport_number}</p>
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <img src="{{asset('${clientData.image}')}}" style="height: 300px; width: auto">
+                                                            ${carouselHtml}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1064,6 +1127,7 @@
                                     </div>
                                 </div>
                             `;
+
                         statusResult.html(serializedData);
                         statusResult.show();
                         dataNotFound.hide();
@@ -1080,6 +1144,10 @@
     });
 
 </script>
+
+
+
+
 
 
 <script>
@@ -1172,3 +1240,4 @@
 </script>
 
 @endpush
+

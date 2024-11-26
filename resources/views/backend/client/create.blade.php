@@ -44,18 +44,50 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label for="image">Client Image *</label>
+                            <label for="files">Client Images/PDFs *</label>
                             <div>
-                                <input type="file" name="image" class="custom-file-input" id="customFile"
-                                    onchange="document.getElementById('image').src = window.URL.createObjectURL(this.files[0])"
-                                    class="@error('image') is-invalid @enderror"><br>
-
-                                <img class="mt-2" id="image" alt="image" width="100" height="100" />
+                                <input type="file" name="files[]" class="custom-file-input @error('files') is-invalid @enderror" id="customFiles" multiple
+                                    accept="image/*,application/pdf" onchange="previewFiles(this.files)">
+                                <div id="filePreviewContainer" class="mt-2"></div>
                             </div>
-
                         </div>
 
+                        <script>
+                            function previewFiles(files) {
+                                const container = document.getElementById('filePreviewContainer');
+                                container.innerHTML = ''; // Clear previous previews
+
+                                Array.from(files).forEach((file, index) => {
+                                    const fileType = file.type;
+                                    const div = document.createElement('div');
+                                    div.classList.add('file-preview', 'mr-2', 'mb-2');
+
+                                    if (fileType.startsWith('image/')) {
+                                        // Preview image files
+                                        const img = document.createElement('img');
+                                        img.src = URL.createObjectURL(file);
+                                        img.alt = `Image ${index + 1}`;
+                                        img.width = 100;
+                                        img.height = 100;
+                                        div.appendChild(img);
+                                    } else if (fileType === 'application/pdf') {
+                                        // Preview PDF files
+                                        const pdfIcon = document.createElement('div');
+                                        pdfIcon.innerHTML = `<span class="badge badge-primary">PDF ${index + 1}</span>`;
+                                        div.appendChild(pdfIcon);
+                                    } else {
+                                        // For other file types, show a placeholder
+                                        const placeholder = document.createElement('div');
+                                        placeholder.innerHTML = `<span class="badge badge-secondary">File ${index + 1}</span>`;
+                                        div.appendChild(placeholder);
+                                    }
+
+                                    container.appendChild(div);
+                                });
+                            }
+                        </script>
                     </div>
+
                     <div class="col-lg-12">
                         <!-- About Description Input -->
                         <div class="form-group">

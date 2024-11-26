@@ -21,36 +21,49 @@ class ClientController extends Controller
 
     public function store(Request $request)
     {
-        $validateData =  $request->validate([
-            'passport_number'       => 'required|string',
-            'name'                  => 'required|string|max:255',
-            'image'                 => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'short_description'     => 'nullable|string',
+        $validateData = $request->validate([
+            'passport_number'   => 'required|string',
+            'name'              => 'required|string|max:255',
+            'files'             => 'required|array',
+            'files.*'           => 'mimes:jpeg,png,jpg,gif,svg,pdf',
+            'short_description' => 'nullable|string',
         ]);
 
         $client = new Client();
 
-        $client->passport_number       = $validateData['passport_number'];
-        $client->name                  = $validateData['name'];
-        $client->short_description     = $validateData['short_description'];
+        $client->passport_number   = $validateData['passport_number'];
+        $client->name              = $validateData['name'];
+        $client->short_description = $validateData['short_description'];
 
-        if ($request->hasFile('image')) {
-            $image        = $request->file('image');
-            $imageName    = time() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('Uploads/ClientImage'), $imageName);
-            $client->image  = 'Uploads/ClientImage/' . $imageName;
+        // Array to store file paths (images and PDFs)
+        $filePaths = [];
+
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+
+                // Store PDFs in a separate folder
+                $folder = $file->getClientOriginalExtension() === 'pdf' ? 'Uploads/ClientDocuments' : 'Uploads/ClientImages';
+
+                $file->move(public_path($folder), $fileName);
+                $filePaths[] = $folder . '/' . $fileName;
+            }
+
+            // Store the file paths as a JSON array
+            $client->images = json_encode($filePaths);
         }
 
         $client->save();
 
         $notification = array(
-            'message'    =>'Client Info Store successfully ',
-            'alert-type' =>'success'
+            'message'    => 'Client Info stored successfully',
+            'alert-type' => 'success'
         );
-
 
         return redirect()->route('clients.index')->with($notification);
     }
+
+
 
 
     public function edit($id)
@@ -60,44 +73,58 @@ class ClientController extends Controller
         return view('backend.client.edit',compact('client'));
     }
 
-    public function update(Request $request,$id)
+    public function update(Request $request, $id)
     {
-        $validateData =  $request->validate([
-            'passport_number'       => 'string',
-            'name'                  => 'string|max:255',
-            'image'                 => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'short_description'     => 'nullable|string',
+        $validateData = $request->validate([
+            'passport_number'   => 'string',
+            'name'              => 'string|max:255',
+            'images'            => 'array',
+            'images.*'          => 'image|mimes:jpeg,png,jpg,gif,svg',
+            'short_description' => 'nullable|string',
         ]);
+
         $client = Client::findOrFail($id);
 
+        $client->passport_number   = $validateData['passport_number'];
+        $client->name              = $validateData['name'];
+        $client->short_description = $validateData['short_description'];
 
-        $client->passport_number       = $validateData['passport_number'];
-        $client->name                  = $validateData['name'];
-        $client->short_description     = $validateData['short_description'];
+        // Decode existing images
+        $existingImages = json_decode($client->images, true) ?? [];
 
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('Uploads/ClientImage'), $imageName);
-
-            if ($client->image && file_exists(public_path($client->image))) {
-                unlink(public_path($client->image));
+        // Handle new image uploads
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $image->move(public_path('Uploads/ClientImages'), $imageName);
+                $existingImages[] = 'Uploads/ClientImages/' . $imageName; // Add new image path to existing ones
             }
-
-            $client->image = 'Uploads/ClientImage/' . $imageName;
         }
 
+        // Handle deletion of old images that are no longer part of the updated image set
+        $oldImages = json_decode($client->images, true) ?? [];
+
+        foreach ($oldImages as $oldImage) {
+            if (!in_array($oldImage, $existingImages) && file_exists(public_path($oldImage))) {
+                unlink(public_path($oldImage)); // Delete old image if it's not in the updated list
+            }
+        }
+
+        // Update the client's images field with the updated image paths array
+        $client->images = json_encode($existingImages);
 
         $client->save();
 
         $notification = array(
-            'message'    =>'Client Info Update successfully ',
-            'alert-type' =>'info'
+            'message'    => 'Client Info updated successfully',
+            'alert-type' => 'info'
         );
 
         return redirect()->route('clients.index')->with($notification);
-
     }
+
+
+
 
     public function destroy($id)
     {
